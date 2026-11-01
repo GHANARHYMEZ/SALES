@@ -1,0 +1,90 @@
+name: Build installers
+
+# Builds all three versions from the same www/ folder:
+#   - ShopDesk-web-app   (installable web app, upload to any https host)
+#   - ShopDesk-Android   (.apk)
+#   - ShopDesk-Windows   (.exe installer)
+# Runs on every push to main, on version tags (v1.0.0 ...), and by hand from the Actions tab.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --no-audit --no-fund
+      - run: npm run build:web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ShopDesk-web-app
+          path: www
+
+  android:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: npm install --no-audit --no-fund
+      - name: Restore signing key (optional)
+        if: ${{ env.KEYSTORE_B64 != '' }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/shopdesk.jks"
+          echo "ANDROID_KEYSTORE=$RUNNER_TEMP/shopdesk.jks" >> "$GITHUB_ENV"
+      - name: Build APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: npm run build:android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ShopDesk-Android
+          path: dist/*.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --no-audit --no-fund
+      - name: Build Windows installer
+        env:
+          # Optional: set these secrets to sign the installer and avoid the SmartScreen warning.
+          CSC_LINK: ${{ secrets.WINDOWS_CERT_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: npm run build:windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ShopDesk-Windows
+          path: dist/*.exe
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [web, android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+      - name: Zip the web app
+        run: cd artifacts/ShopDesk-web-app && zip -r ../ShopDesk-web-app.zip .
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/ShopDesk-Android/*.apk
+            artifacts/ShopDesk-Windows/*.exe
+            artifacts/ShopDesk-web-app.zip
