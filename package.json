@@ -1,0 +1,52 @@
+{
+  "name": "shopdesk-ghana",
+  "productName": "ShopDesk Ghana",
+  "version": "1.0.0",
+  "description": "ShopDesk Ghana: point of sale, stock and accounts for small shops",
+  "author": "J. O. ACQUAAH",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "serve:web": "node scripts/build-web.mjs && node scripts/serve.mjs",
+    "start:desktop": "node scripts/build-web.mjs && electron .",
+    "build:windows": "node scripts/build-web.mjs && electron-builder --win nsis --x64 --publish never",
+    "android:prepare": "node scripts/build-web.mjs && node scripts/android-prepare.mjs",
+    "build:android": "npm run android:prepare && node scripts/android-build.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/filesystem": "^6.0.0",
+    "@capacitor/share": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.1.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.shopdesk.ghana",
+    "productName": "ShopDesk Ghana",
+    "copyright": "© 2026 J. O. ACQUAAH. All Rights Reserved.",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["electron/**/*", "www/**/*", "package.json"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ShopDesk Ghana",
+      "artifactName": "ShopDesk-Ghana-Setup-${version}.${ext}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    }
+  }
+}

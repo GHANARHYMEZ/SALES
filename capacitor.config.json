@@ -1,0 +1,6 @@
+{
+  "appId": "com.shopdesk.ghana",
+  "appName": "ShopDesk Ghana",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}
